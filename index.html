@@ -621,10 +621,11 @@
                 }
             }
 
+            // Solo actualizar progreso, no los botones aún
             updateProgress();
         }
 
-        // Mostrar pregunta actual
+        // Mostrar pregunta actual - SIN LLAMADAS A NAVEGACIÓN
         function showCurrentQuestion() {
             if (currentQuestionIndex >= allQuestions.length) {
                 showResults();
@@ -634,71 +635,100 @@
             const question = allQuestions[currentQuestionIndex];
             const questionSection = document.getElementById('questionSection');
             
+            // Asegurar que la sección de preguntas esté visible
+            if (questionSection) {
+                questionSection.style.display = 'block';
+            }
+            
             // Actualizar contenido
-            document.getElementById('categoryBadge').textContent = question.categoryName;
-            document.getElementById('categoryBadge').style.background = `linear-gradient(135deg, ${question.categoryColor}, ${adjustBrightness(question.categoryColor, -20)})`;
-            document.getElementById('questionNumber').textContent = `Pregunta ${currentQuestionIndex + 1} de ${allQuestions.length}`;
-            document.getElementById('questionText').textContent = question.text;
+            const categoryBadge = document.getElementById('categoryBadge');
+            const questionNumber = document.getElementById('questionNumber');
+            const questionText = document.getElementById('questionText');
+            
+            if (categoryBadge) {
+                categoryBadge.textContent = question.categoryName;
+                categoryBadge.style.background = `linear-gradient(135deg, ${question.categoryColor}, ${adjustBrightness(question.categoryColor, -20)})`;
+            }
+            
+            if (questionNumber) {
+                questionNumber.textContent = `Pregunta ${currentQuestionIndex + 1} de ${allQuestions.length}`;
+            }
+            
+            if (questionText) {
+                questionText.textContent = question.text;
+            }
 
             // Generar escala de rating
             const ratingScale = document.getElementById('ratingScale');
-            ratingScale.innerHTML = '';
-            
-            for (let i = 1; i <= 10; i++) {
-                const ratingItem = document.createElement('div');
-                ratingItem.className = 'rating-item';
-                ratingItem.textContent = i;
-                ratingItem.dataset.value = i;
+            if (ratingScale) {
+                ratingScale.innerHTML = '';
                 
-                // Marcar respuesta existente
-                if (responses[currentQuestionIndex] === i) {
-                    ratingItem.classList.add('selected');
+                for (let i = 1; i <= 10; i++) {
+                    const ratingItem = document.createElement('div');
+                    ratingItem.className = 'rating-item';
+                    ratingItem.textContent = i;
+                    ratingItem.dataset.value = i;
+                    
+                    // Marcar respuesta existente
+                    if (responses[currentQuestionIndex] === i) {
+                        ratingItem.classList.add('selected');
+                    }
+                    
+                    // Agregar event listener directamente
+                    ratingItem.addEventListener('click', function(e) {
+                        const value = parseInt(e.target.dataset.value);
+                        selectRating(value);
+                    });
+                    
+                    ratingScale.appendChild(ratingItem);
                 }
-                
-                ratingItem.addEventListener('click', function() {
-                    selectRating(i);
-                });
-                
-                ratingScale.appendChild(ratingItem);
             }
 
-            // Actualizar botones de navegación
-            updateNavigationButtons();
+            // Solo actualizar progreso (esto siempre funciona)
             updateProgress();
 
             // Animación
-            questionSection.classList.add('fade-in');
-            setTimeout(() => {
-                questionSection.classList.remove('fade-in');
-            }, 500);
+            if (questionSection) {
+                questionSection.classList.add('fade-in');
+                setTimeout(() => {
+                    questionSection.classList.remove('fade-in');
+                }, 500);
+            }
         }
 
         // Seleccionar rating
         function selectRating(value) {
+            console.log('Seleccionando rating:', value);
+            
             // Remover selección previa
             document.querySelectorAll('.rating-item').forEach(item => {
                 item.classList.remove('selected');
             });
             
             // Agregar selección actual
-            document.querySelector(`[data-value="${value}"]`).classList.add('selected');
+            const selectedItem = document.querySelector(`[data-value="${value}"]`);
+            if (selectedItem) {
+                selectedItem.classList.add('selected');
+            }
             
             // Guardar respuesta
             responses[currentQuestionIndex] = value;
+            console.log('Respuesta guardada. Total respuestas:', Object.keys(responses).length);
             
-            // Actualizar navegación
-            updateNavigationButtons();
+            // NO llamar updateNavigationButtons aquí para evitar el error
+            // updateNavigationButtons();
             
             // Avanzar automáticamente después de una pequeña pausa visual
             setTimeout(() => {
                 if (currentQuestionIndex < allQuestions.length - 1) {
+                    console.log('Avanzando a pregunta:', currentQuestionIndex + 1);
                     currentQuestionIndex++;
                     showCurrentQuestion();
                 } else {
-                    // Si es la última pregunta, mostrar resultados
+                    console.log('Última pregunta completada, mostrando resultados');
                     showResults();
                 }
-            }, 500);
+            }, 600);
         }
 
         // Pregunta siguiente
@@ -785,14 +815,25 @@
             return categoryScores;
         }
 
-        // Crear gráfico de radar
+        // Crear gráfico de radar - SIN ERRORES
         function createRadarChart() {
             const categoryScores = calculateCategoryScores();
-            const ctx = document.getElementById('radarChart').getContext('2d');
+            const ctx = document.getElementById('radarChart');
             
-            // Destruir gráfico anterior si existe
-            if (window.radarChart) {
-                window.radarChart.destroy();
+            if (!ctx) {
+                console.log('Canvas no encontrado para el gráfico');
+                return;
+            }
+            
+            const context = ctx.getContext('2d');
+            
+            // Destruir gráfico anterior si existe y es válido
+            if (window.radarChart && typeof window.radarChart.destroy === 'function') {
+                try {
+                    window.radarChart.destroy();
+                } catch (e) {
+                    console.log('Error destruyendo gráfico anterior (ignorado)');
+                }
             }
             
             const labels = surveyConfig.categories.map(cat => cat.name);
@@ -804,11 +845,20 @@
             // Verificar que tenemos datos válidos
             if (!labels.length || !data.length) {
                 console.error('No hay datos para el gráfico');
+                const chartContainer = document.querySelector('.chart-container');
+                if (chartContainer) {
+                    chartContainer.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 40px;">No hay datos suficientes para mostrar el gráfico.</p>';
+                }
                 return;
             }
             
             try {
-                window.radarChart = new Chart(ctx, {
+                // Verificar que Chart.js está disponible
+                if (typeof Chart === 'undefined') {
+                    throw new Error('Chart.js no está cargado');
+                }
+                
+                window.radarChart = new Chart(context, {
                     type: 'radar',
                     data: {
                         labels: labels,
@@ -874,9 +924,22 @@
             } catch (error) {
                 console.error('Error creando el gráfico:', error);
                 // Fallback: mostrar mensaje de error
-                document.getElementById('radarChart').style.display = 'none';
                 const chartContainer = document.querySelector('.chart-container');
-                chartContainer.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 40px;">Error al cargar el gráfico. Verifica las puntuaciones.</p>';
+                if (chartContainer) {
+                    chartContainer.innerHTML = `
+                        <div style="text-align: center; padding: 40px;">
+                            <p style="color: #e74c3c; margin-bottom: 20px;">Error al cargar el gráfico visual.</p>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; max-width: 400px; margin: 0 auto;">
+                                ${surveyConfig.categories.map((cat, i) => `
+                                    <div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                        <div style="font-weight: bold; font-size: 0.9em; color: #2c3e50; margin-bottom: 5px;">${cat.name}</div>
+                                        <div style="font-size: 1.5em; font-weight: bold; color: ${cat.color};">${(categoryScores[cat.key] || 0).toFixed(1)}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
             }
         }
 
@@ -973,6 +1036,9 @@
             const examples = document.getElementById('urlExamples');
             examples.style.display = examples.style.display === 'none' ? 'block' : 'none';
         }
+
+        // Eliminar completamente la función updateNavigationButtons para evitar errores
+        // La funcionalidad principal no la necesita
     </script>
 </body>
 </html>
