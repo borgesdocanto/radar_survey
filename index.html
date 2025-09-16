@@ -33,6 +33,34 @@
             position: relative;
         }
 
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 20px;
+                margin: 10px;
+                border-radius: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 25px 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .question-text {
+                font-size: 1.1em;
+            }
+            
+            .btn {
+                padding: 12px 20px;
+                font-size: 0.9em;
+                min-width: 100px;
+            }
+        }
+
         .header {
             text-align: center;
             margin-bottom: 30px;
@@ -389,6 +417,33 @@
                 <div class="actions">
                     <button class="btn" onclick="copyUrl()">📋 Copiar URL</button>
                     <button class="btn btn-secondary" onclick="resetSurvey()">🔄 Nueva Evaluación</button>
+                    <button class="btn" onclick="showUrlExamples()" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">📚 Ver Ejemplos de URLs</button>
+                </div>
+                
+                <div id="urlExamples" style="display: none; margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+                    <h4>Ejemplos de URLs Personalizadas:</h4>
+                    <div style="margin: 15px 0;">
+                        <strong>1. Cambiar nombres de categorías:</strong>
+                        <div style="font-family: monospace; background: white; padding: 10px; margin: 5px 0; border-radius: 5px; font-size: 0.8em;">
+                            ?names=Ventas,Marketing,Servicio,Finanzas
+                        </div>
+                    </div>
+                    <div style="margin: 15px 0;">
+                        <strong>2. Preguntas personalizadas (hasta 12):</strong>
+                        <div style="font-family: monospace; background: white; padding: 10px; margin: 5px 0; border-radius: 5px; font-size: 0.8em;">
+                            ?t1=¿Dominas las técnicas de venta?&t2=¿Generas leads de calidad?&t3=¿Cierras ventas consistentemente?
+                        </div>
+                    </div>
+                    <div style="margin: 15px 0;">
+                        <strong>3. URL completa de ejemplo:</strong>
+                        <div style="font-family: monospace; background: white; padding: 10px; margin: 5px 0; border-radius: 5px; font-size: 0.8em;">
+                            ?name=Juan+Perez&names=Ventas,Marketing,Servicio&t1=¿Cierras ventas efectivamente?&t2=¿Generas leads de calidad?&t3=¿Brindas excelente servicio?
+                        </div>
+                    </div>
+                    <p style="font-size: 0.9em; color: #7f8c8d; margin-top: 15px;">
+                        💡 <strong>Tip:</strong> Combina parámetros para crear encuestas totalmente personalizadas. 
+                        Las preguntas se distribuyen automáticamente entre las categorías.
+                    </p>
                 </div>
             </div>
         </div>
@@ -396,7 +451,7 @@
 
     <script>
         // Configuración del sistema
-        const surveyConfig = {
+        const defaultSurveyConfig = {
             categories: [
                 {
                     key: 'captacion',
@@ -441,6 +496,8 @@
             ]
         };
 
+        let surveyConfig = { ...defaultSurveyConfig };
+
         // Variables globales
         let currentQuestionIndex = 0;
         let responses = {};
@@ -463,10 +520,57 @@
                 urlParams[key] = decodeURIComponent(value);
             }
 
+            // Cargar configuración personalizada desde URL
+            loadCustomSurveyConfig();
+
             // Cargar respuestas existentes si existen
             if (Object.keys(urlParams).length > 0) {
                 loadExistingResponses();
             }
+        }
+
+        // Cargar configuración personalizada desde URL
+        function loadCustomSurveyConfig() {
+            // Si hay nombres de categorías en la URL, usarlos
+            if (urlParams.names) {
+                const customCategoryNames = urlParams.names.split(',');
+                surveyConfig.categories.forEach((category, index) => {
+                    if (customCategoryNames[index]) {
+                        category.name = customCategoryNames[index].trim();
+                    }
+                });
+            }
+
+            // Si hay preguntas personalizadas en la URL, usarlas
+            const customQuestions = [];
+            let questionIndex = 1;
+            
+            while (urlParams[`t${questionIndex}`]) {
+                customQuestions.push(urlParams[`t${questionIndex}`]);
+                questionIndex++;
+            }
+
+            // Si hay preguntas personalizadas, reorganizar las categorías
+            if (customQuestions.length > 0) {
+                const questionsPerCategory = Math.ceil(customQuestions.length / surveyConfig.categories.length);
+                
+                surveyConfig.categories.forEach((category, categoryIndex) => {
+                    const startIndex = categoryIndex * questionsPerCategory;
+                    const endIndex = Math.min(startIndex + questionsPerCategory, customQuestions.length);
+                    
+                    if (startIndex < customQuestions.length) {
+                        category.questions = customQuestions.slice(startIndex, endIndex);
+                    }
+                });
+
+                // Si hay menos categorías necesarias, ajustar
+                const neededCategories = Math.ceil(customQuestions.length / questionsPerCategory);
+                if (neededCategories < surveyConfig.categories.length) {
+                    surveyConfig.categories = surveyConfig.categories.slice(0, neededCategories);
+                }
+            }
+
+            console.log('Configuración cargada:', surveyConfig);
         }
 
         // Cargar respuestas existentes
@@ -668,57 +772,88 @@
             }
             
             const labels = surveyConfig.categories.map(cat => cat.name);
-            const data = surveyConfig.categories.map(cat => categoryScores[cat.key]);
+            const data = surveyConfig.categories.map(cat => categoryScores[cat.key] || 0);
             const colors = surveyConfig.categories.map(cat => cat.color);
             
-            window.radarChart = new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Tu Puntuación',
-                        data: data,
-                        backgroundColor: 'rgba(52, 152, 219, 0.2)',
-                        borderColor: '#3498db',
-                        borderWidth: 3,
-                        pointBackgroundColor: colors,
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
-                        pointRadius: 8
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    scales: {
-                        r: {
-                            beginAtZero: true,
-                            max: 10,
-                            min: 0,
-                            ticks: {
-                                stepSize: 2,
-                                font: {
-                                    size: 12
+            console.log('Datos del gráfico:', { labels, data, colors });
+            
+            // Verificar que tenemos datos válidos
+            if (!labels.length || !data.length) {
+                console.error('No hay datos para el gráfico');
+                return;
+            }
+            
+            try {
+                window.radarChart = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Tu Puntuación',
+                            data: data,
+                            backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                            borderColor: '#3498db',
+                            borderWidth: 3,
+                            pointBackgroundColor: colors,
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 8,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 10,
+                                min: 0,
+                                ticks: {
+                                    stepSize: 2,
+                                    font: {
+                                        size: 12
+                                    },
+                                    color: '#666',
+                                    backdropColor: 'transparent'
+                                },
+                                pointLabels: {
+                                    font: {
+                                        size: 13,
+                                        weight: 'bold'
+                                    },
+                                    color: '#2c3e50'
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                },
+                                angleLines: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
                                 }
-                            },
-                            pointLabels: {
-                                font: {
-                                    size: 13,
-                                    weight: 'bold'
-                                }
-                            },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        elements: {
+                            line: {
+                                tension: 0
                             }
                         }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
                     }
-                }
-            });
+                });
+                
+                console.log('Gráfico creado exitosamente');
+                
+            } catch (error) {
+                console.error('Error creando el gráfico:', error);
+                // Fallback: mostrar mensaje de error
+                document.getElementById('radarChart').style.display = 'none';
+                const chartContainer = document.querySelector('.chart-container');
+                chartContainer.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 40px;">Error al cargar el gráfico. Verifica las puntuaciones.</p>';
+            }
         }
 
         // Crear tarjetas de puntuación
@@ -797,10 +932,22 @@
         function resetSurvey() {
             responses = {};
             currentQuestionIndex = 0;
+            
+            // Resetear configuración a la original
+            surveyConfig = JSON.parse(JSON.stringify(defaultSurveyConfig));
+            
             document.getElementById('resultsSection').style.display = 'none';
             document.getElementById('questionSection').style.display = 'block';
+            
+            // Re-inicializar con configuración por defecto
+            initializeSurvey();
             showCurrentQuestion();
             window.scrollTo(0, 0);
+        }
+
+        function showUrlExamples() {
+            const examples = document.getElementById('urlExamples');
+            examples.style.display = examples.style.display === 'none' ? 'block' : 'none';
         }
     </script>
 </body>
