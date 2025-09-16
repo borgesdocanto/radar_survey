@@ -17,7 +17,6 @@
     h1{font-size:22px;margin:0 0 6px;line-height:1.2}
     h2{font-size:16px;margin:8px 0 4px;color:var(--muted)}
     .muted{color:var(--muted)}
-    .pill{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;background:#171a21;border:1px solid #262a36;border-radius:999px;font-size:12px}
     .grid{display:grid;gap:16px}
     @media(min-width:980px){.grid{grid-template-columns:1.1fr .9fr}}
     .progress{width:100%;height:8px;background:#1f2330;border-radius:999px;overflow:hidden}
@@ -30,36 +29,57 @@
     .footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:12px}
     .btn{background:#1f2330;border:0;color:#e5e7eb;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
     .btn.primary{background:var(--brand);color:#fff}
-    input{padding:6px 8px;border-radius:6px;border:1px solid #333;background:#1f2330;color:#fff;width:100%;margin-bottom:12px}
+    input[type="text"], input[type="email"]{padding:8px 10px;border-radius:8px;border:1px solid #333;background:#1f2330;color:#fff;width:100%;margin:8px 0 12px}
     label{display:block;margin-bottom:6px}
+    /* Survey controls */
+    .survey-q{font-size:18px;margin:0 0 8px}
+    .survey-idx{color:var(--muted);font-size:12px;margin-bottom:8px}
+    .slider{width:100%}
+    .nums{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+    .nums button{flex:1 0 36px;min-width:36px;padding:8px 0;border:1px solid #333;background:#1f2330;color:#e5e7eb;border-radius:8px;cursor:pointer}
+    .nums button.active{background:var(--brand);border-color:var(--brand);color:#fff}
+    .survey-nav{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+    .pill{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;background:#171a21;border:1px solid #262a36;border-radius:999px;font-size:12px}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <!-- Header -->
+    <!-- Header / Name -->
     <div class="card" id="headerCard">
-      <h1>Radar Inmobiliario</h1>
+      <h1 id="title">Radar Inmobiliario</h1>
       <form id="nameForm">
-        <label>Tu nombre completo:
-          <input type="text" id="fullName" required>
+        <label>Tu nombre completo
+          <input type="text" id="fullName" required placeholder="Ej.: Leandro Borges Do Canto" />
         </label>
         <button type="submit" class="btn primary">Comenzar</button>
       </form>
+      <div class="muted" id="subtitle"></div>
     </div>
 
+    <!-- Survey Stepper -->
+    <div class="card" id="surveyCard" style="display:none">
+      <div class="survey-idx" id="qIdx">Pregunta 1/1</div>
+      <div class="survey-q" id="qText">…</div>
+      <input type="range" class="slider" id="qSlider" min="1" max="10" step="1" value="5" />
+      <div class="nums" id="qNums"></div>
+      <div class="survey-nav">
+        <button class="btn" id="btnPrev" type="button">Anterior</button>
+        <button class="btn primary" id="btnNext" type="button">Siguiente</button>
+      </div>
+    </div>
+
+    <!-- Results -->
     <div class="grid" id="mainContent" style="display:none">
-      <!-- Radar -->
       <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+          <span class="pill"><span>Modo</span><strong id="mode">visualización</strong></span>
+          <button class="btn" id="btnCopy">Copiar URL del resultado</button>
+        </div>
         <canvas id="radar" height="440"></canvas>
         <div class="footer">
           <div class="muted">Puntaje por eje (0–10). “Ideal” = máximo de cada pregunta normalizado a 10.</div>
-          <div>
-            <button class="btn" id="btnCopy">Copiar URL</button>
-          </div>
         </div>
       </div>
-
-      <!-- Summary -->
       <div class="card">
         <h2>Resumen</h2>
         <div class="kpi" id="kpi"></div>
@@ -69,7 +89,6 @@
       </div>
     </div>
 
-    <!-- Table -->
     <div class="card" id="questionsCard" style="display:none">
       <h2>Detalle de preguntas</h2>
       <table id="tbl">
@@ -82,115 +101,15 @@
   </div>
 
   <script>
+    // --- Utils ---
     const qs = new URLSearchParams(location.search);
     const hasQS = !!qs.toString();
     function getSeq(prefix){ const out=[]; let i=1; while(qs.has(prefix+i)){ out.push(qs.get(prefix+i)); i++; } return out; }
     function toNum(x){ const n = Number(x); return Number.isFinite(n)? n : 0; }
+    function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
 
+    // --- Parameters / Defaults (inmobiliario) ---
     const axisNames = (qs.get('names') || 'Captación de propiedades,Generación y gestión de leads,Productividad personal y del equipo,Conversión de operaciones')
       .split(',').map(s=>s.trim()).filter(Boolean);
-    const roomId = qs.get('roomId') || '';
-    const survey = qs.get('survey') === '1';
-
-    let T = getSeq('t');
-    let A = getSeq('A').map(toNum);
-    let Q = getSeq('Q').map(toNum);
-
-    if(!hasQS){
-      T = [
-        '¿Mi propuesta de captación comunica diferenciales y obtiene exclusivas?',
-        '¿Prospecto Dueño Vende / referidos de forma constante?',
-        '¿Mis tasaciones generan confianza (metodología, comparables, tiempos)?',
-        '¿Mi % de exclusivas sobre captaciones es alto?',
-        '¿Tengo fuentes estables de leads (ads, orgánico, referidos)?',
-        '¿Ingreso cada lead al CRM con etiquetas y propietario?',
-        '¿Respondo rápido con scripts claros en WhatsApp/IG/Email?',
-        '¿Mido lead→cita y show rate semanalmente?',
-        '¿Mi agenda cumple bloques de actividad de alto impacto?',
-        '¿Equipo con checklists/playbooks para visitas, tasaciones y seguimiento?',
-        '¿Automatizo comunicaciones claves (reseñas, recordatorios, post-visita)?',
-        '¿Reviso KPI por agente y doy feedback accionable cada semana?',
-        '¿Mis presentaciones y muestras generan confianza/urgencia sin presión?',
-        '¿Gestiono objeciones de precio/condiciones con técnica?',
-        '¿Tengo proceso claro de reserva a escritura sin fricciones?',
-        '¿Mi tasa de cierre mejora mes a mes y la tengo medida?'
-      ];
-      Q = Array(T.length).fill(10);
-      A = [8.4,7.8,8.7,7.0, 6.0,6.5,6.4,5.6, 5.7,4.9,6.7,4.8, 7.2,6.3,6.9,6.1];
-    }
-
-    const N = Math.min(T.length, A.length || 0, Q.length || 0) || T.length;
-    T = T.slice(0,N); A = A.slice(0,N); Q = Q.slice(0,N).map(q=> q>0? q : 10);
-
-    const norm = A.map((a,i)=> { const q = Q[i] || 10; return Math.max(0, Math.min(10, (a / q) * 10)); });
-
-    const k = axisNames.length || 4;
-    const base = Math.floor(N / k); const extra = N % k;
-    const groups = []; let idx=0;
-    for(let g=0; g<k; g++){
-      const size = base + (g<extra?1:0);
-      groups.push({label: axisNames[g] || `Eje ${g+1}` , idxFrom: idx, idxTo: idx+size});
-      idx += size;
-    }
-
-    const axisScores = groups.map(g=>{
-      const slice = norm.slice(g.idxFrom,g.idxTo);
-      const mean = slice.length? (slice.reduce((s,x)=>s+x,0)/slice.length) : 0;
-      return Number(mean.toFixed(2));
-    });
-
-    const ideal = groups.map(()=>10);
-
-    let chart;
-    const ctx = document.getElementById('radar');
-
-    function renderRadar(userName){
-      document.getElementById('headerCard').innerHTML = `<h1>Radar Inmobiliario de ${userName}</h1>`;
-      document.getElementById('mainContent').style.display = 'grid';
-      document.getElementById('questionsCard').style.display = 'block';
-
-      const kpi = document.getElementById('kpi');
-      groups.forEach((g,i)=>{
-        const div = document.createElement('div');
-        div.className = 'box';
-        div.innerHTML = `<div style=\"font-size:12px;color:var(--muted)\">${g.label}</div><div style=\"font-size:22px;font-weight:800\">${axisScores[i].toFixed(2)}</div>`;
-        kpi.appendChild(div);
-      });
-
-      const global = norm.length? (norm.reduce((s,x)=>s+x,0)/norm.length) : 0;
-      document.getElementById('overallBar').style.width = (global*10)+'%';
-      document.getElementById('overallText').textContent = `Puntaje global: ${global.toFixed(2)} / 10`;
-
-      const tbody = document.querySelector('#tbl tbody');
-      T.forEach((txt,i)=>{
-        const tr = document.createElement('tr');
-        const normVal = norm[i];
-        tr.innerHTML = `<td>${i+1}</td><td>${txt||'-'}</td><td>${A[i]}</td><td>${Q[i]}</td><td>${normVal.toFixed(2)}</td>`;
-        tbody.appendChild(tr);
-      });
-
-      chart = new Chart(ctx, {
-        type: 'radar',
-        data: {
-          labels: groups.map(g=>g.label),
-          datasets: [
-            { label: 'Resultado', data: axisScores, borderColor: '#e54661', backgroundColor: 'rgba(229,70,97,0.2)', pointBackgroundColor: '#e54661', pointRadius: 3, borderWidth: 2 },
-            { label: 'Ideal', data: ideal, borderColor: '#374151', backgroundColor: 'rgba(55,65,81,0.15)', pointRadius: 0, borderDash: [4,4], borderWidth: 1.5 }
-          ]
-        },
-        options: { maintainAspectRatio: false, scales: { r: { beginAtZero: true, suggestedMax: 10, angleLines: { color: '#1f2330' }, grid: { color: '#1f2330' }, pointLabels: { color: '#e5e7eb', font: { size: 12, weight: '600' }}, ticks: { display: true, showLabelBackdrop:false, color:'#9ca3af' } } }, plugins: { legend: { labels: { color: '#e5e7eb' } } } }
-      });
-    }
-
-    document.getElementById('nameForm').addEventListener('submit', function(e){
-      e.preventDefault();
-      const userName = document.getElementById('fullName').value.trim() || 'Participante';
-      renderRadar(userName);
-    });
-
-    document.getElementById('btnCopy').addEventListener('click', async ()=>{
-      try { await navigator.clipboard.writeText(location.href); alert('URL copiada'); } catch { /* noop */ }
-    });
-  </script>
-</body>
-</html>
+    const personFromQS = qs.get('name') || '';
+    const
