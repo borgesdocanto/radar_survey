@@ -29,9 +29,8 @@
     .footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:12px}
     .btn{background:#1f2330;border:0;color:#e5e7eb;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
     .btn.primary{background:var(--brand);color:#fff}
-    input[type="text"], input[type="email"]{padding:8px 10px;border-radius:8px;border:1px solid #333;background:#1f2330;color:#fff;width:100%;margin:8px 0 12px}
+    input[type="text"]{padding:8px 10px;border-radius:8px;border:1px solid #333;background:#1f2330;color:#fff;width:100%;margin:8px 0 12px}
     label{display:block;margin-bottom:6px}
-    /* Survey controls */
     .survey-q{font-size:18px;margin:0 0 8px}
     .survey-idx{color:var(--muted);font-size:12px;margin-bottom:8px}
     .slider{width:100%}
@@ -40,11 +39,11 @@
     .nums button.active{background:var(--brand);border-color:var(--brand);color:#fff}
     .survey-nav{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
     .pill{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;background:#171a21;border:1px solid #262a36;border-radius:999px;font-size:12px}
+    .err{color:#ffb4b4;font-size:12px;margin-top:6px}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <!-- Header / Name -->
     <div class="card" id="headerCard">
       <h1 id="title">Radar Inmobiliario</h1>
       <form id="nameForm">
@@ -52,11 +51,11 @@
           <input type="text" id="fullName" required placeholder="Ej.: Leandro Borges Do Canto" />
         </label>
         <button type="submit" class="btn primary">Comenzar</button>
+        <div class="err" id="nameErr" style="display:none">Ingresá tu nombre para continuar.</div>
       </form>
       <div class="muted" id="subtitle"></div>
     </div>
 
-    <!-- Survey Stepper -->
     <div class="card" id="surveyCard" style="display:none">
       <div class="survey-idx" id="qIdx">Pregunta 1/1</div>
       <div class="survey-q" id="qText">…</div>
@@ -68,7 +67,6 @@
       </div>
     </div>
 
-    <!-- Results -->
     <div class="grid" id="mainContent" style="display:none">
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
@@ -101,15 +99,152 @@
   </div>
 
   <script>
-    // --- Utils ---
     const qs = new URLSearchParams(location.search);
     const hasQS = !!qs.toString();
     function getSeq(prefix){ const out=[]; let i=1; while(qs.has(prefix+i)){ out.push(qs.get(prefix+i)); i++; } return out; }
     function toNum(x){ const n = Number(x); return Number.isFinite(n)? n : 0; }
     function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
 
-    // --- Parameters / Defaults (inmobiliario) ---
-    const axisNames = (qs.get('names') || 'Captación de propiedades,Generación y gestión de leads,Productividad personal y del equipo,Conversión de operaciones')
-      .split(',').map(s=>s.trim()).filter(Boolean);
+    const defaultAxes = 'Captación de propiedades,Generación y gestión de leads,Productividad personal y del equipo,Conversión de operaciones';
+    const axisNames = (qs.get('names') || defaultAxes).split(',').map(s=>s.trim()).filter(Boolean);
     const personFromQS = qs.get('name') || '';
-    const
+    const forceSurvey = qs.get('survey') === '1';
+
+    let T = getSeq('t');
+    let A_fromQS = getSeq('A').map(toNum);
+    let Q = getSeq('Q').map(q=> Number(q)||10);
+
+    if(T.length === 0){
+      T = [
+        '¿Mi propuesta de captación comunica diferenciales y obtiene exclusivas?',
+        '¿Prospecto Dueño Vende / referidos de forma constante?',
+        '¿Mis tasaciones generan confianza (metodología, comparables, tiempos)?',
+        '¿Mi % de exclusivas sobre captaciones es alto?',
+        '¿Tengo fuentes estables de leads (ads, orgánico, referidos)?',
+        '¿Ingreso cada lead al CRM con etiquetas y propietario?',
+        '¿Respondo rápido con scripts claros en WhatsApp/IG/Email?',
+        '¿Mido lead→cita y show rate semanalmente?',
+        '¿Mi agenda cumple bloques de actividad de alto impacto?',
+        '¿Equipo con checklists/playbooks para visitas, tasaciones y seguimiento?',
+        '¿Automatizo comunicaciones claves (reseñas, recordatorios, post-visita)?',
+        '¿Reviso KPI por agente y doy feedback accionable cada semana?',
+        '¿Mis presentaciones y muestras generan confianza/urgencia sin presión?',
+        '¿Gestiono objeciones de precio/condiciones con técnica?',
+        '¿Tengo proceso claro de reserva a escritura sin fricciones?',
+        '¿Mi tasa de cierre mejora mes a mes y la tengo medida?'
+      ];
+    }
+
+    const N = T.length;
+    if(Q.length < N){ Q = Q.concat(Array(N - Q.length).fill(10)); }
+    if(A_fromQS.length > N){ A_fromQS = A_fromQS.slice(0,N); }
+
+    const nameForm = document.getElementById('nameForm');
+    const fullNameInput = document.getElementById('fullName');
+    const nameErr = document.getElementById('nameErr');
+    const headerCard = document.getElementById('headerCard');
+
+    if(personFromQS){ fullNameInput.value = personFromQS; }
+
+    nameForm.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const name = (fullNameInput.value || '').trim();
+      if(!name){ nameErr.style.display='block'; return; }
+      nameErr.style.display='none';
+
+      // Insertar el nombre en la URL actual
+      const params = new URLSearchParams(location.search);
+      params.set('name', name);
+      const newUrl = location.pathname + '?' + params.toString();
+      history.replaceState(null, '', newUrl);
+
+      const canDirect = (A_fromQS.length === N) && !forceSurvey;
+      if(canDirect){ renderResults(name, A_fromQS); }
+      else { startSurvey(name); }
+    });
+
+    const surveyCard = document.getElementById('surveyCard');
+    const qIdxEl = document.getElementById('qIdx');
+    const qTextEl = document.getElementById('qText');
+    const qSlider = document.getElementById('qSlider');
+    const qNums = document.getElementById('qNums');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+
+    let answers = new Array(N).fill(5);
+    let current = 0;
+
+    function paintNumberButtons(){
+      qNums.innerHTML = '';
+      for(let n=1;n<=10;n++){
+        const b = document.createElement('button');
+        b.type='button'; b.textContent=String(n);
+        if(n===answers[current]) b.classList.add('active');
+        b.addEventListener('click',()=>{ answers[current]=n; qSlider.value = n; paintNumberButtons(); });
+        qNums.appendChild(b);
+      }
+    }
+
+    qSlider.addEventListener('input', ()=>{ answers[current]=Number(qSlider.value); paintNumberButtons(); });
+
+    function showQuestion(){
+      qIdxEl.textContent = `Pregunta ${current+1}/${N}`;
+      qTextEl.textContent = T[current] || '';
+      qSlider.value = clamp(answers[current],1,10);
+      paintNumberButtons();
+      btnPrev.style.visibility = current===0? 'hidden':'visible';
+      btnNext.textContent = current===N-1? 'Finalizar':'Siguiente';
+    }
+
+    btnPrev.addEventListener('click', ()=>{ if(current>0){ current--; showQuestion(); }});
+    btnNext.addEventListener('click', ()=>{
+      if(current < N-1){ current++; showQuestion(); }
+      else {
+        const name = (fullNameInput.value || 'Participante').trim();
+        renderResults(name, answers);
+      }
+    });
+
+    function startSurvey(name){
+      headerCard.style.display = 'none';
+      surveyCard.style.display = 'block';
+      for(let i=0;i<Math.min(A_fromQS.length,N);i++){
+        const v = clamp(Math.round(A_fromQS[i]),1,10);
+        if(v){ answers[i]=v; }
+      }
+      showQuestion();
+    }
+
+    const mainContent = document.getElementById('mainContent');
+    const questionsCard = document.getElementById('questionsCard');
+    const kpi = document.getElementById('kpi');
+    const overallBar = document.getElementById('overallBar');
+    const overallText = document.getElementById('overallText');
+    const tbody = document.querySelector('#tbl tbody');
+
+    function renderResults(name, A){
+      const header = document.getElementById('title');
+      header.textContent = `Radar Inmobiliario de ${name}`;
+      headerCard.style.display = 'block';
+      surveyCard.style.display = 'none';
+      mainContent.style.display = 'grid';
+      questionsCard.style.display = 'block';
+      document.getElementById('mode').textContent = 'visualización';
+
+      const norm = A.map((a,i)=> Math.max(0, Math.min(10, ( (Number(a)||0) / (Q[i]||10) )*10 )));
+
+      const k = axisNames.length || 4; const base = Math.floor(N / k); const extra = N % k;
+      const groups = []; let idx=0; for(let g=0; g<k; g++){ const size = base + (g<extra?1:0); groups.push({label: axisNames[g]||`Eje ${g+1}`, idxFrom: idx, idxTo: idx+size}); idx+=size; }
+      const axisScores = groups.map(g=>{ const slice = norm.slice(g.idxFrom,g.idxTo); return slice.length? (slice.reduce((s,x)=>s+x,0)/slice.length) : 0; });
+      const ideal = groups.map(()=>10);
+
+      kpi.innerHTML = '';
+      groups.forEach((g,i)=>{
+        const div = document.createElement('div');
+        div.className = 'box';
+        div.innerHTML = `<div style=\"font-size:12px;color:var(--muted)\">${g.label}</div><div style=\"font-size:22px;font-weight:800\">${axisScores[i].toFixed(2)}</div>`;
+        kpi.appendChild(div);
+      });
+
+      const global = norm.length? (norm.reduce((s,x)=>s+x,0)/norm.length) : 0;
+      overallBar.style.width = (global*10)+'%';
