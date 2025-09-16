@@ -3,109 +3,193 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Radar Survey – Inmobiliario</title>
+  <title>Radar Inmobiliario</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <style>
-    body{font-family:sans-serif;background:#0b0b0c;color:#f3f4f6;margin:0;padding:20px}
-    .card{background:#121317;border:1px solid #1f2330;border-radius:16px;padding:18px;margin-bottom:16px}
-    h1{margin:0 0 6px;font-size:22px}
-    table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{padding:8px;border-bottom:1px solid #1f2330;font-size:13px}
-    th{color:#9ca3af}
-    label{display:block;margin-bottom:6px}
+    :root { --brand:#e54661; --bg:#0b0b0c; --panel:#121317; --line:#1f2330; --text:#f3f4f6; --muted:#9ca3af }
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif;margin:0;background:var(--bg);color:var(--text)}
+    .wrap{max-width:1100px;margin:22px auto;padding:16px}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}
+    h1{font-size:22px;margin:0 0 6px;line-height:1.2}
+    h2{font-size:16px;margin:8px 0 4px;color:var(--muted)}
+    .muted{color:var(--muted)}
+    .pill{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;background:#171a21;border:1px solid #262a36;border-radius:999px;font-size:12px}
+    .grid{display:grid;gap:16px}
+    @media(min-width:980px){.grid{grid-template-columns:1.1fr .9fr}}
+    .progress{width:100%;height:8px;background:#1f2330;border-radius:999px;overflow:hidden}
+    .bar{height:100%;background:linear-gradient(90deg,#7a1228,var(--brand))}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}
+    th{color:var(--muted);font-weight:600}
+    .kpi{display:flex;gap:16px;flex-wrap:wrap}
+    .kpi .box{background:#121317;border:1px solid #1f2330;border-radius:12px;padding:12px 14px;min-width:120px}
+    .footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:12px}
+    .btn{background:#1f2330;border:0;color:#e5e7eb;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
+    .btn.primary{background:var(--brand);color:#fff}
     input{padding:6px 8px;border-radius:6px;border:1px solid #333;background:#1f2330;color:#fff;width:100%;margin-bottom:12px}
-    button{padding:8px 14px;border:none;border-radius:8px;background:#e54661;color:#fff;font-weight:bold;cursor:pointer}
+    label{display:block;margin-bottom:6px}
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Radar Survey Inmobiliario</h1>
-    <form id="userForm">
-      <label>Nombre completo:
-        <input type="text" id="fullName" required>
-      </label>
-      <label>Email:
-        <input type="email" id="email" required>
-      </label>
-      <button type="submit">Comenzar encuesta</button>
-    </form>
-    <canvas id="radar" height="400" style="display:none"></canvas>
-  </div>
+  <div class="wrap">
+    <!-- Header -->
+    <div class="card" id="headerCard">
+      <h1>Radar Inmobiliario</h1>
+      <form id="nameForm">
+        <label>Tu nombre completo:
+          <input type="text" id="fullName" required>
+        </label>
+        <button type="submit" class="btn primary">Comenzar</button>
+      </form>
+    </div>
 
-  <div class="card" id="questionsCard" style="display:none">
-    <h2>Preguntas utilizadas</h2>
-    <table>
-      <thead><tr><th>#</th><th>Pregunta</th></tr></thead>
-      <tbody id="tbl"></tbody>
-    </table>
+    <div class="grid" id="mainContent" style="display:none">
+      <!-- Radar -->
+      <div class="card">
+        <canvas id="radar" height="440"></canvas>
+        <div class="footer">
+          <div class="muted">Puntaje por eje (0–10). “Ideal” = máximo de cada pregunta normalizado a 10.</div>
+          <div>
+            <button class="btn" id="btnCopy">Copiar URL</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div class="card">
+        <h2>Resumen</h2>
+        <div class="kpi" id="kpi"></div>
+        <div style="height:8px"></div>
+        <div class="progress"><div class="bar" id="overallBar" style="width:0%"></div></div>
+        <div class="muted" id="overallText" style="margin-top:6px"></div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card" id="questionsCard" style="display:none">
+      <h2>Detalle de preguntas</h2>
+      <table id="tbl">
+        <thead>
+          <tr><th>#</th><th>Pregunta</th><th>Resultado (A)</th><th>Máx (Q)</th><th>Normalizado (0–10)</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
 
   <script>
-    const axisNames = [
-      "Captación de propiedades",
-      "Generación y gestión de leads",
-      "Productividad personal y del equipo",
-      "Conversión de operaciones"
-    ];
+    const qs = new URLSearchParams(location.search);
+    const hasQS = !!qs.toString();
+    function getSeq(prefix){ const out=[]; let i=1; while(qs.has(prefix+i)){ out.push(qs.get(prefix+i)); i++; } return out; }
+    function toNum(x){ const n = Number(x); return Number.isFinite(n)? n : 0; }
 
-    const texts = [
-      "¿Publico regularmente contenido que atrae a potenciales vendedores?",
-      "¿Tengo un proceso claro para identificar propiedades en venta por dueño directo?",
-      "¿Ofrezco valor diferencial al captar para conseguir exclusivas?",
+    const axisNames = (qs.get('names') || 'Captación de propiedades,Generación y gestión de leads,Productividad personal y del equipo,Conversión de operaciones')
+      .split(',').map(s=>s.trim()).filter(Boolean);
+    const roomId = qs.get('roomId') || '';
+    const survey = qs.get('survey') === '1';
 
-      "¿Respondo a cada lead digital en menos de 1 hora?",
-      "¿Uso un CRM para clasificar y nutrir leads automáticamente?",
-      "¿Mido de dónde llegan mis mejores leads?",
+    let T = getSeq('t');
+    let A = getSeq('A').map(toNum);
+    let Q = getSeq('Q').map(toNum);
 
-      "¿Mi agenda diaria refleja prioridades de captación y cierre?",
-      "¿Mi equipo sabe exactamente qué acciones debe realizar cada día?",
-      "¿Reviso semanalmente métricas de productividad personal y grupal?",
+    if(!hasQS){
+      T = [
+        '¿Mi propuesta de captación comunica diferenciales y obtiene exclusivas?',
+        '¿Prospecto Dueño Vende / referidos de forma constante?',
+        '¿Mis tasaciones generan confianza (metodología, comparables, tiempos)?',
+        '¿Mi % de exclusivas sobre captaciones es alto?',
+        '¿Tengo fuentes estables de leads (ads, orgánico, referidos)?',
+        '¿Ingreso cada lead al CRM con etiquetas y propietario?',
+        '¿Respondo rápido con scripts claros en WhatsApp/IG/Email?',
+        '¿Mido lead→cita y show rate semanalmente?',
+        '¿Mi agenda cumple bloques de actividad de alto impacto?',
+        '¿Equipo con checklists/playbooks para visitas, tasaciones y seguimiento?',
+        '¿Automatizo comunicaciones claves (reseñas, recordatorios, post-visita)?',
+        '¿Reviso KPI por agente y doy feedback accionable cada semana?',
+        '¿Mis presentaciones y muestras generan confianza/urgencia sin presión?',
+        '¿Gestiono objeciones de precio/condiciones con técnica?',
+        '¿Tengo proceso claro de reserva a escritura sin fricciones?',
+        '¿Mi tasa de cierre mejora mes a mes y la tengo medida?'
+      ];
+      Q = Array(T.length).fill(10);
+      A = [8.4,7.8,8.7,7.0, 6.0,6.5,6.4,5.6, 5.7,4.9,6.7,4.8, 7.2,6.3,6.9,6.1];
+    }
 
-      "¿Realizo seguimiento sistemático de cada interesado hasta cerrar?",
-      "¿Uso presentaciones o materiales profesionales para aumentar cierres?",
-      "¿Pido referencias a clientes satisfechos para generar nuevas operaciones?"
-    ];
+    const N = Math.min(T.length, A.length || 0, Q.length || 0) || T.length;
+    T = T.slice(0,N); A = A.slice(0,N); Q = Q.slice(0,N).map(q=> q>0? q : 10);
 
-    const valsA = [7,6,8, 5,6,7, 6,7,5, 8,6,7];
-    const valsQ = Array(texts.length).fill(10);
-    const norm = valsA.map((a,i)=> (a/valsQ[i])*10);
+    const norm = A.map((a,i)=> { const q = Q[i] || 10; return Math.max(0, Math.min(10, (a / q) * 10)); });
 
-    const groups = [
-      {label:axisNames[0], idxFrom:0, idxTo:3},
-      {label:axisNames[1], idxFrom:3, idxTo:6},
-      {label:axisNames[2], idxFrom:6, idxTo:9},
-      {label:axisNames[3], idxFrom:9, idxTo:12}
-    ];
+    const k = axisNames.length || 4;
+    const base = Math.floor(N / k); const extra = N % k;
+    const groups = []; let idx=0;
+    for(let g=0; g<k; g++){
+      const size = base + (g<extra?1:0);
+      groups.push({label: axisNames[g] || `Eje ${g+1}` , idxFrom: idx, idxTo: idx+size});
+      idx += size;
+    }
 
     const axisScores = groups.map(g=>{
       const slice = norm.slice(g.idxFrom,g.idxTo);
-      return slice.reduce((s,x)=>s+x,0)/slice.length;
+      const mean = slice.length? (slice.reduce((s,x)=>s+x,0)/slice.length) : 0;
+      return Number(mean.toFixed(2));
     });
 
-    const ctx=document.getElementById('radar');
-    let chart;
+    const ideal = groups.map(()=>10);
 
-    document.getElementById('userForm').addEventListener('submit', function(e){
-      e.preventDefault();
-      const name = document.getElementById('fullName').value;
-      const mail = document.getElementById('email').value;
-      alert(`Gracias ${name}! Registramos tu email: ${mail}`);
-      document.getElementById('userForm').style.display = 'none';
-      ctx.style.display = 'block';
+    let chart;
+    const ctx = document.getElementById('radar');
+
+    function renderRadar(userName){
+      document.getElementById('headerCard').innerHTML = `<h1>Radar Inmobiliario de ${userName}</h1>`;
+      document.getElementById('mainContent').style.display = 'grid';
       document.getElementById('questionsCard').style.display = 'block';
 
-      chart = new Chart(ctx,{type:'radar',data:{
-        labels:axisNames,
-        datasets:[
-          {label:'Resultado',data:axisScores,borderColor:'#e54661',backgroundColor:'rgba(229,70,97,0.2)'}
-        ]},options:{scales:{r:{beginAtZero:true,suggestedMax:10}}}});
+      const kpi = document.getElementById('kpi');
+      groups.forEach((g,i)=>{
+        const div = document.createElement('div');
+        div.className = 'box';
+        div.innerHTML = `<div style=\"font-size:12px;color:var(--muted)\">${g.label}</div><div style=\"font-size:22px;font-weight:800\">${axisScores[i].toFixed(2)}</div>`;
+        kpi.appendChild(div);
+      });
 
-      const tbody=document.getElementById('tbl');
-      texts.forEach((txt,i)=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${i+1}</td><td>${txt}</td>`;
+      const global = norm.length? (norm.reduce((s,x)=>s+x,0)/norm.length) : 0;
+      document.getElementById('overallBar').style.width = (global*10)+'%';
+      document.getElementById('overallText').textContent = `Puntaje global: ${global.toFixed(2)} / 10`;
+
+      const tbody = document.querySelector('#tbl tbody');
+      T.forEach((txt,i)=>{
+        const tr = document.createElement('tr');
+        const normVal = norm[i];
+        tr.innerHTML = `<td>${i+1}</td><td>${txt||'-'}</td><td>${A[i]}</td><td>${Q[i]}</td><td>${normVal.toFixed(2)}</td>`;
         tbody.appendChild(tr);
       });
+
+      chart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: groups.map(g=>g.label),
+          datasets: [
+            { label: 'Resultado', data: axisScores, borderColor: '#e54661', backgroundColor: 'rgba(229,70,97,0.2)', pointBackgroundColor: '#e54661', pointRadius: 3, borderWidth: 2 },
+            { label: 'Ideal', data: ideal, borderColor: '#374151', backgroundColor: 'rgba(55,65,81,0.15)', pointRadius: 0, borderDash: [4,4], borderWidth: 1.5 }
+          ]
+        },
+        options: { maintainAspectRatio: false, scales: { r: { beginAtZero: true, suggestedMax: 10, angleLines: { color: '#1f2330' }, grid: { color: '#1f2330' }, pointLabels: { color: '#e5e7eb', font: { size: 12, weight: '600' }}, ticks: { display: true, showLabelBackdrop:false, color:'#9ca3af' } } }, plugins: { legend: { labels: { color: '#e5e7eb' } } } }
+      });
+    }
+
+    document.getElementById('nameForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      const userName = document.getElementById('fullName').value.trim() || 'Participante';
+      renderRadar(userName);
+    });
+
+    document.getElementById('btnCopy').addEventListener('click', async ()=>{
+      try { await navigator.clipboard.writeText(location.href); alert('URL copiada'); } catch { /* noop */ }
     });
   </script>
 </body>
