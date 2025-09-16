@@ -1,250 +1,807 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Radar Inmobiliario</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-  <style>
-    :root { --brand:#e54661; --bg:#0b0b0c; --panel:#121317; --line:#1f2330; --text:#f3f4f6; --muted:#9ca3af }
-    *{box-sizing:border-box}
-    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif;margin:0;background:var(--bg);color:var(--text)}
-    .wrap{max-width:1100px;margin:22px auto;padding:16px}
-    .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}
-    h1{font-size:22px;margin:0 0 6px;line-height:1.2}
-    h2{font-size:16px;margin:8px 0 4px;color:var(--muted)}
-    .muted{color:var(--muted)}
-    .grid{display:grid;gap:16px}
-    @media(min-width:980px){.grid{grid-template-columns:1.1fr .9fr}}
-    .progress{width:100%;height:8px;background:#1f2330;border-radius:999px;overflow:hidden}
-    .bar{height:100%;background:linear-gradient(90deg,#7a1228,var(--brand))}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}
-    th{color:var(--muted);font-weight:600}
-    .kpi{display:flex;gap:16px;flex-wrap:wrap}
-    .kpi .box{background:#121317;border:1px solid #1f2330;border-radius:12px;padding:12px 14px;min-width:120px}
-    .footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:12px}
-    .btn{background:#1f2330;border:0;color:#e5e7eb;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
-    .btn.primary{background:var(--brand);color:#fff}
-    input[type="text"]{padding:8px 10px;border-radius:8px;border:1px solid #333;background:#1f2330;color:#fff;width:100%;margin:8px 0 12px}
-    label{display:block;margin-bottom:6px}
-    .survey-q{font-size:18px;margin:0 0 8px}
-    .survey-idx{color:var(--muted);font-size:12px;margin-bottom:8px}
-    .slider{width:100%}
-    .nums{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-    .nums button{flex:1 0 36px;min-width:36px;padding:8px 0;border:1px solid #333;background:#1f2330;color:#e5e7eb;border-radius:8px;cursor:pointer}
-    .nums button.active{background:var(--brand);border-color:var(--brand);color:#fff}
-    .survey-nav{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
-    .pill{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;background:#171a21;border:1px solid #262a36;border-radius:999px;font-size:12px}
-    .err{color:#ffb4b4;font-size:12px;margin-top:6px}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluación de Desempeño Inmobiliario</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            min-height: 500px;
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        .progress-section {
+            margin-bottom: 30px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #27ae60);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+
+        .question-section {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .category-badge {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        .question-number {
+            font-size: 1.1em;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        .question-text {
+            font-size: 1.3em;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            line-height: 1.4;
+            font-weight: 500;
+        }
+
+        .rating-container {
+            margin: 30px 0;
+        }
+
+        .rating-scale {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 5px;
+            margin-bottom: 15px;
+            max-width: 500px;
+            margin: 0 auto 15px auto;
+        }
+
+        .rating-item {
+            width: 45px;
+            height: 45px;
+            border: 2px solid #bdc3c7;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            font-size: 1.1em;
+            justify-self: center;
+        }
+
+        @media (max-width: 768px) {
+            .rating-scale {
+                grid-template-columns: repeat(5, 1fr);
+                gap: 8px;
+                max-width: 300px;
+            }
+            
+            .rating-item {
+                width: 50px;
+                height: 50px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .rating-scale {
+                grid-template-columns: repeat(5, 1fr);
+                gap: 6px;
+                max-width: 280px;
+            }
+            
+            .rating-item {
+                width: 45px;
+                height: 45px;
+                font-size: 1em;
+            }
+        }
+
+        .rating-item:hover {
+            transform: scale(1.15);
+            border-color: #3498db;
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .rating-item.selected {
+            background: #3498db;
+            color: white;
+            border-color: #2980b9;
+            transform: scale(1.1);
+        }
+
+        .rating-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin: 15px 20px;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 8px 20px rgba(149, 165, 166, 0.3);
+        }
+
+        .results-section {
+            text-align: center;
+            display: none;
+        }
+
+        .results-header {
+            margin-bottom: 30px;
+        }
+
+        .results-header h2 {
+            color: #2c3e50;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .chart-container {
+            margin: 30px 0;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .scores-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .score-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .score-card h4 {
+            color: #2c3e50;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .score-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .score-excellent { color: #27ae60; }
+        .score-good { color: #f39c12; }
+        .score-needs-improvement { color: #e74c3c; }
+
+        .score-label {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        .url-section {
+            background: #ecf0f1;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .url-section h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .generated-url {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            word-break: break-all;
+            border: 1px solid #bdc3c7;
+            font-size: 0.9em;
+        }
+
+        .actions {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .slide-in {
+            animation: slideIn 0.4s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+    </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card" id="headerCard">
-      <h1 id="title">Radar Inmobiliario</h1>
-      <form id="nameForm">
-        <label>Tu nombre completo
-          <input type="text" id="fullName" required placeholder="Ej.: Leandro Borges Do Canto" />
-        </label>
-        <button type="submit" class="btn primary">Comenzar</button>
-        <div class="err" id="nameErr" style="display:none">Ingresá tu nombre para continuar.</div>
-      </form>
-      <div class="muted" id="subtitle"></div>
-    </div>
-
-    <div class="card" id="surveyCard" style="display:none">
-      <div class="survey-idx" id="qIdx">Pregunta 1/1</div>
-      <div class="survey-q" id="qText">…</div>
-      <input type="range" class="slider" id="qSlider" min="1" max="10" step="1" value="5" />
-      <div class="nums" id="qNums"></div>
-      <div class="survey-nav">
-        <button class="btn" id="btnPrev" type="button">Anterior</button>
-        <button class="btn primary" id="btnNext" type="button">Siguiente</button>
-      </div>
-    </div>
-
-    <div class="grid" id="mainContent" style="display:none">
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
-          <span class="pill"><span>Modo</span><strong id="mode">visualización</strong></span>
-          <button class="btn" id="btnCopy">Copiar URL del resultado</button>
+    <div class="container">
+        <div class="header">
+            <h1>Evaluación Inmobiliaria</h1>
+            <p>Evalúa tu desempeño paso a paso</p>
         </div>
-        <canvas id="radar" height="440"></canvas>
-        <div class="footer">
-          <div class="muted">Puntaje por eje (0–10). “Ideal” = máximo de cada pregunta normalizado a 10.</div>
+
+        <div class="progress-section">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text">
+                <span id="progressText">Pregunta 0 de 0</span>
+            </div>
         </div>
-      </div>
-      <div class="card">
-        <h2>Resumen</h2>
-        <div class="kpi" id="kpi"></div>
-        <div style="height:8px"></div>
-        <div class="progress"><div class="bar" id="overallBar" style="width:0%"></div></div>
-        <div class="muted" id="overallText" style="margin-top:6px"></div>
-      </div>
+
+        <!-- Sección de preguntas -->
+        <div class="question-section" id="questionSection">
+            <div class="category-badge" id="categoryBadge"></div>
+            <div class="question-number" id="questionNumber"></div>
+            <div class="question-text" id="questionText"></div>
+            
+            <div class="rating-container">
+                <div class="rating-scale" id="ratingScale">
+                    <!-- Los botones de rating se generan dinámicamente -->
+                </div>
+                <div class="rating-labels">
+                    <span>Muy bajo</span>
+                    <span>Excelente</span>
+                </div>
+            </div>
+
+            <div class="navigation">
+                <button class="btn btn-secondary" id="prevBtn" onclick="previousQuestion()" disabled>
+                    ← Anterior
+                </button>
+                <button class="btn" id="nextBtn" onclick="nextQuestion()" disabled>
+                    Siguiente →
+                </button>
+            </div>
+        </div>
+
+        <!-- Sección de resultados -->
+        <div class="results-section" id="resultsSection">
+            <div class="results-header">
+                <h2>Tus Resultados</h2>
+                <p>Análisis de tu desempeño por área</p>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="radarChart" width="400" height="400"></canvas>
+            </div>
+
+            <div class="scores-grid" id="scoresGrid">
+                <!-- Los scores se generan dinámicamente -->
+            </div>
+
+            <div class="url-section">
+                <h3>URL de esta Evaluación</h3>
+                <div class="generated-url" id="generatedUrl"></div>
+                <div class="actions">
+                    <button class="btn" onclick="copyUrl()">📋 Copiar URL</button>
+                    <button class="btn btn-secondary" onclick="resetSurvey()">🔄 Nueva Evaluación</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="card" id="questionsCard" style="display:none">
-      <h2>Detalle de preguntas</h2>
-      <table id="tbl">
-        <thead>
-          <tr><th>#</th><th>Pregunta</th><th>Resultado (A)</th><th>Máx (Q)</th><th>Normalizado (0–10)</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </div>
+    <script>
+        // Configuración del sistema
+        const surveyConfig = {
+            categories: [
+                {
+                    key: 'captacion',
+                    name: 'Captación de Propiedades',
+                    color: '#3498db',
+                    questions: [
+                        'Tengo una estrategia clara para identificar propiedades con potencial de venta',
+                        'Mantengo relaciones sólidas con propietarios que pueden referir nuevas propiedades',
+                        'Utilizo múltiples canales para encontrar nuevas propiedades (online, networking, referencias)'
+                    ]
+                },
+                {
+                    key: 'leads',
+                    name: 'Generación y Gestión de Leads',
+                    color: '#27ae60',
+                    questions: [
+                        'Genero consistentemente nuevos leads calificados cada semana',
+                        'Tengo un sistema organizado para dar seguimiento a todos mis leads',
+                        'Convierto efectivamente leads fríos en clientes interesados'
+                    ]
+                },
+                {
+                    key: 'productividad',
+                    name: 'Productividad Personal y del Equipo',
+                    color: '#f39c12',
+                    questions: [
+                        'Gestiono eficientemente mi tiempo y priorizo las actividades de mayor impacto',
+                        'Utilizo tecnología y herramientas para optimizar mis procesos de trabajo',
+                        'Colaboro efectivamente con mi equipo para maximizar resultados'
+                    ]
+                },
+                {
+                    key: 'conversion',
+                    name: 'Conversión de Operaciones',
+                    color: '#e74c3c',
+                    questions: [
+                        'Cierro efectivamente las negociaciones y concreto las ventas',
+                        'Manejo objeciones de clientes de manera profesional y convincente',
+                        'Mantengo una tasa de conversión consistente de prospectos a clientes'
+                    ]
+                }
+            ]
+        };
 
-  <script>
-    const qs = new URLSearchParams(location.search);
-    const hasQS = !!qs.toString();
-    function getSeq(prefix){ const out=[]; let i=1; while(qs.has(prefix+i)){ out.push(qs.get(prefix+i)); i++; } return out; }
-    function toNum(x){ const n = Number(x); return Number.isFinite(n)? n : 0; }
-    function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+        // Variables globales
+        let currentQuestionIndex = 0;
+        let responses = {};
+        let allQuestions = [];
+        let urlParams = {};
 
-    const defaultAxes = 'Captación de propiedades,Generación y gestión de leads,Productividad personal y del equipo,Conversión de operaciones';
-    const axisNames = (qs.get('names') || defaultAxes).split(',').map(s=>s.trim()).filter(Boolean);
-    const personFromQS = qs.get('name') || '';
-    const forceSurvey = qs.get('survey') === '1';
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            parseURLParams();
+            initializeSurvey();
+            showCurrentQuestion();
+        });
 
-    let T = getSeq('t');
-    let A_fromQS = getSeq('A').map(toNum);
-    let Q = getSeq('Q').map(q=> Number(q)||10);
+        // Parsear parámetros de URL
+        function parseURLParams() {
+            const params = new URLSearchParams(window.location.search);
+            urlParams = {};
+            
+            for (let [key, value] of params) {
+                urlParams[key] = decodeURIComponent(value);
+            }
 
-    if(T.length === 0){
-      T = [
-        '¿Mi propuesta de captación comunica diferenciales y obtiene exclusivas?',
-        '¿Prospecto Dueño Vende / referidos de forma constante?',
-        '¿Mis tasaciones generan confianza (metodología, comparables, tiempos)?',
-        '¿Mi % de exclusivas sobre captaciones es alto?',
-        '¿Tengo fuentes estables de leads (ads, orgánico, referidos)?',
-        '¿Ingreso cada lead al CRM con etiquetas y propietario?',
-        '¿Respondo rápido con scripts claros en WhatsApp/IG/Email?',
-        '¿Mido lead→cita y show rate semanalmente?',
-        '¿Mi agenda cumple bloques de actividad de alto impacto?',
-        '¿Equipo con checklists/playbooks para visitas, tasaciones y seguimiento?',
-        '¿Automatizo comunicaciones claves (reseñas, recordatorios, post-visita)?',
-        '¿Reviso KPI por agente y doy feedback accionable cada semana?',
-        '¿Mis presentaciones y muestras generan confianza/urgencia sin presión?',
-        '¿Gestiono objeciones de precio/condiciones con técnica?',
-        '¿Tengo proceso claro de reserva a escritura sin fricciones?',
-        '¿Mi tasa de cierre mejora mes a mes y la tengo medida?'
-      ];
-    }
+            // Cargar respuestas existentes si existen
+            if (Object.keys(urlParams).length > 0) {
+                loadExistingResponses();
+            }
+        }
 
-    const N = T.length;
-    if(Q.length < N){ Q = Q.concat(Array(N - Q.length).fill(10)); }
-    if(A_fromQS.length > N){ A_fromQS = A_fromQS.slice(0,N); }
+        // Cargar respuestas existentes
+        function loadExistingResponses() {
+            for (let key in urlParams) {
+                if (key.startsWith('A')) {
+                    const questionNum = parseInt(key.substring(1));
+                    const score = parseFloat(urlParams[key]);
+                    responses[questionNum - 1] = score;
+                }
+            }
+        }
 
-    const nameForm = document.getElementById('nameForm');
-    const fullNameInput = document.getElementById('fullName');
-    const nameErr = document.getElementById('nameErr');
-    const headerCard = document.getElementById('headerCard');
+        // Inicializar encuesta
+        function initializeSurvey() {
+            allQuestions = [];
+            
+            surveyConfig.categories.forEach((category, categoryIndex) => {
+                category.questions.forEach((question, questionIndex) => {
+                    allQuestions.push({
+                        text: question,
+                        categoryIndex: categoryIndex,
+                        categoryName: category.name,
+                        categoryKey: category.key,
+                        categoryColor: category.color
+                    });
+                });
+            });
 
-    if(personFromQS){ fullNameInput.value = personFromQS; }
+            // Si hay respuestas cargadas, ir a la primera pregunta sin respuesta
+            if (Object.keys(responses).length > 0) {
+                for (let i = 0; i < allQuestions.length; i++) {
+                    if (responses[i] === undefined) {
+                        currentQuestionIndex = i;
+                        break;
+                    }
+                }
+                // Si todas están respondidas, mostrar resultados
+                if (Object.keys(responses).length === allQuestions.length) {
+                    showResults();
+                    return;
+                }
+            }
 
-    nameForm.addEventListener('submit', (e)=>{
-      e.preventDefault();
-      const name = (fullNameInput.value || '').trim();
-      if(!name){ nameErr.style.display='block'; return; }
-      nameErr.style.display='none';
+            updateProgress();
+        }
 
-      // Insertar el nombre en la URL actual
-      const params = new URLSearchParams(location.search);
-      params.set('name', name);
-      const newUrl = location.pathname + '?' + params.toString();
-      history.replaceState(null, '', newUrl);
+        // Mostrar pregunta actual
+        function showCurrentQuestion() {
+            if (currentQuestionIndex >= allQuestions.length) {
+                showResults();
+                return;
+            }
 
-      const canDirect = (A_fromQS.length === N) && !forceSurvey;
-      if(canDirect){ renderResults(name, A_fromQS); }
-      else { startSurvey(name); }
-    });
+            const question = allQuestions[currentQuestionIndex];
+            const questionSection = document.getElementById('questionSection');
+            
+            // Actualizar contenido
+            document.getElementById('categoryBadge').textContent = question.categoryName;
+            document.getElementById('categoryBadge').style.background = `linear-gradient(135deg, ${question.categoryColor}, ${adjustBrightness(question.categoryColor, -20)})`;
+            document.getElementById('questionNumber').textContent = `Pregunta ${currentQuestionIndex + 1} de ${allQuestions.length}`;
+            document.getElementById('questionText').textContent = question.text;
 
-    const surveyCard = document.getElementById('surveyCard');
-    const qIdxEl = document.getElementById('qIdx');
-    const qTextEl = document.getElementById('qText');
-    const qSlider = document.getElementById('qSlider');
-    const qNums = document.getElementById('qNums');
-    const btnPrev = document.getElementById('btnPrev');
-    const btnNext = document.getElementById('btnNext');
+            // Generar escala de rating
+            const ratingScale = document.getElementById('ratingScale');
+            ratingScale.innerHTML = '';
+            
+            for (let i = 1; i <= 10; i++) {
+                const ratingItem = document.createElement('div');
+                ratingItem.className = 'rating-item';
+                ratingItem.textContent = i;
+                ratingItem.dataset.value = i;
+                
+                // Marcar respuesta existente
+                if (responses[currentQuestionIndex] === i) {
+                    ratingItem.classList.add('selected');
+                }
+                
+                ratingItem.addEventListener('click', function() {
+                    selectRating(i);
+                });
+                
+                ratingScale.appendChild(ratingItem);
+            }
 
-    let answers = new Array(N).fill(5);
-    let current = 0;
+            // Actualizar botones de navegación
+            updateNavigationButtons();
+            updateProgress();
 
-    function paintNumberButtons(){
-      qNums.innerHTML = '';
-      for(let n=1;n<=10;n++){
-        const b = document.createElement('button');
-        b.type='button'; b.textContent=String(n);
-        if(n===answers[current]) b.classList.add('active');
-        b.addEventListener('click',()=>{ answers[current]=n; qSlider.value = n; paintNumberButtons(); });
-        qNums.appendChild(b);
-      }
-    }
+            // Animación
+            questionSection.classList.add('fade-in');
+            setTimeout(() => {
+                questionSection.classList.remove('fade-in');
+            }, 500);
+        }
 
-    qSlider.addEventListener('input', ()=>{ answers[current]=Number(qSlider.value); paintNumberButtons(); });
+        // Seleccionar rating
+        function selectRating(value) {
+            // Remover selección previa
+            document.querySelectorAll('.rating-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Agregar selección actual
+            document.querySelector(`[data-value="${value}"]`).classList.add('selected');
+            
+            // Guardar respuesta
+            responses[currentQuestionIndex] = value;
+            
+            // Habilitar botón siguiente
+            document.getElementById('nextBtn').disabled = false;
+        }
 
-    function showQuestion(){
-      qIdxEl.textContent = `Pregunta ${current+1}/${N}`;
-      qTextEl.textContent = T[current] || '';
-      qSlider.value = clamp(answers[current],1,10);
-      paintNumberButtons();
-      btnPrev.style.visibility = current===0? 'hidden':'visible';
-      btnNext.textContent = current===N-1? 'Finalizar':'Siguiente';
-    }
+        // Pregunta siguiente
+        function nextQuestion() {
+            if (currentQuestionIndex < allQuestions.length - 1) {
+                currentQuestionIndex++;
+                showCurrentQuestion();
+            } else {
+                showResults();
+            }
+        }
 
-    btnPrev.addEventListener('click', ()=>{ if(current>0){ current--; showQuestion(); }});
-    btnNext.addEventListener('click', ()=>{
-      if(current < N-1){ current++; showQuestion(); }
-      else {
-        const name = (fullNameInput.value || 'Participante').trim();
-        renderResults(name, answers);
-      }
-    });
+        // Pregunta anterior
+        function previousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                showCurrentQuestion();
+            }
+        }
 
-    function startSurvey(name){
-      headerCard.style.display = 'none';
-      surveyCard.style.display = 'block';
-      for(let i=0;i<Math.min(A_fromQS.length,N);i++){
-        const v = clamp(Math.round(A_fromQS[i]),1,10);
-        if(v){ answers[i]=v; }
-      }
-      showQuestion();
-    }
+        // Actualizar botones de navegación
+        function updateNavigationButtons() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            prevBtn.disabled = currentQuestionIndex === 0;
+            nextBtn.disabled = responses[currentQuestionIndex] === undefined;
+            
+            // Cambiar texto del botón si es la última pregunta
+            if (currentQuestionIndex === allQuestions.length - 1 && responses[currentQuestionIndex] !== undefined) {
+                nextBtn.textContent = 'Ver Resultados →';
+            } else {
+                nextBtn.textContent = 'Siguiente →';
+            }
+        }
 
-    const mainContent = document.getElementById('mainContent');
-    const questionsCard = document.getElementById('questionsCard');
-    const kpi = document.getElementById('kpi');
-    const overallBar = document.getElementById('overallBar');
-    const overallText = document.getElementById('overallText');
-    const tbody = document.querySelector('#tbl tbody');
+        // Actualizar progreso
+        function updateProgress() {
+            const progress = ((currentQuestionIndex + 1) / allQuestions.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('progressText').textContent = `Pregunta ${currentQuestionIndex + 1} de ${allQuestions.length}`;
+        }
 
-    function renderResults(name, A){
-      const header = document.getElementById('title');
-      header.textContent = `Radar Inmobiliario de ${name}`;
-      headerCard.style.display = 'block';
-      surveyCard.style.display = 'none';
-      mainContent.style.display = 'grid';
-      questionsCard.style.display = 'block';
-      document.getElementById('mode').textContent = 'visualización';
+        // Mostrar resultados
+        function showResults() {
+            document.getElementById('questionSection').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'block';
+            
+            calculateCategoryScores();
+            createRadarChart();
+            createScoreCards();
+            generateURL();
 
-      const norm = A.map((a,i)=> Math.max(0, Math.min(10, ( (Number(a)||0) / (Q[i]||10) )*10 )));
+            // Scroll suave a resultados
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+        }
 
-      const k = axisNames.length || 4; const base = Math.floor(N / k); const extra = N % k;
-      const groups = []; let idx=0; for(let g=0; g<k; g++){ const size = base + (g<extra?1:0); groups.push({label: axisNames[g]||`Eje ${g+1}`, idxFrom: idx, idxTo: idx+size}); idx+=size; }
-      const axisScores = groups.map(g=>{ const slice = norm.slice(g.idxFrom,g.idxTo); return slice.length? (slice.reduce((s,x)=>s+x,0)/slice.length) : 0; });
-      const ideal = groups.map(()=>10);
+        // Calcular puntuaciones por categoría
+        function calculateCategoryScores() {
+            const categoryScores = {};
+            
+            surveyConfig.categories.forEach((category, categoryIndex) => {
+                const categoryQuestions = category.questions.length;
+                let totalScore = 0;
+                let questionsInCategory = 0;
+                
+                allQuestions.forEach((question, questionIndex) => {
+                    if (question.categoryIndex === categoryIndex && responses[questionIndex] !== undefined) {
+                        totalScore += responses[questionIndex];
+                        questionsInCategory++;
+                    }
+                });
+                
+                categoryScores[category.key] = questionsInCategory > 0 ? totalScore / questionsInCategory : 0;
+            });
+            
+            return categoryScores;
+        }
 
-      kpi.innerHTML = '';
-      groups.forEach((g,i)=>{
-        const div = document.createElement('div');
-        div.className = 'box';
-        div.innerHTML = `<div style=\"font-size:12px;color:var(--muted)\">${g.label}</div><div style=\"font-size:22px;font-weight:800\">${axisScores[i].toFixed(2)}</div>`;
-        kpi.appendChild(div);
-      });
+        // Crear gráfico de radar
+        function createRadarChart() {
+            const categoryScores = calculateCategoryScores();
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            
+            // Destruir gráfico anterior si existe
+            if (window.radarChart) {
+                window.radarChart.destroy();
+            }
+            
+            const labels = surveyConfig.categories.map(cat => cat.name);
+            const data = surveyConfig.categories.map(cat => categoryScores[cat.key]);
+            const colors = surveyConfig.categories.map(cat => cat.color);
+            
+            window.radarChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Tu Puntuación',
+                        data: data,
+                        backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                        borderColor: '#3498db',
+                        borderWidth: 3,
+                        pointBackgroundColor: colors,
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 10,
+                            min: 0,
+                            ticks: {
+                                stepSize: 2,
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            pointLabels: {
+                                font: {
+                                    size: 13,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
 
-      const global = norm.length? (norm.reduce((s,x)=>s+x,0)/norm.length) : 0;
-      overallBar.style.width = (global*10)+'%';
+        // Crear tarjetas de puntuación
+        function createScoreCards() {
+            const categoryScores = calculateCategoryScores();
+            const scoresGrid = document.getElementById('scoresGrid');
+            scoresGrid.innerHTML = '';
+            
+            surveyConfig.categories.forEach(category => {
+                const score = categoryScores[category.key];
+                const scoreClass = score >= 8 ? 'score-excellent' : score >= 6 ? 'score-good' : 'score-needs-improvement';
+                const scoreLabel = score >= 8 ? 'Excelente' : score >= 6 ? 'Bueno' : 'Necesita Mejora';
+                
+                const scoreCard = document.createElement('div');
+                scoreCard.className = 'score-card slide-in';
+                scoreCard.innerHTML = `
+                    <h4>${category.name}</h4>
+                    <div class="score-value ${scoreClass}">${score.toFixed(1)}</div>
+                    <div class="score-label">${scoreLabel}</div>
+                `;
+                
+                scoresGrid.appendChild(scoreCard);
+            });
+        }
+
+        // Generar URL con parámetros
+        function generateURL() {
+            const baseUrl = window.location.origin + window.location.pathname;
+            const params = new URLSearchParams();
+            
+            // Información del participante
+            params.set('name', urlParams.name || 'Participante');
+            params.set('roomId', urlParams.roomId || 'General');
+            
+            // Nombres de categorías
+            const categoryNames = surveyConfig.categories.map(cat => cat.name);
+            params.set('names', categoryNames.join(','));
+            
+            // Respuestas
+            Object.keys(responses).forEach(questionIndex => {
+                const questionNum = parseInt(questionIndex) + 1;
+                params.set(`A${questionNum}`, responses[questionIndex]);
+                params.set(`Q${questionNum}`, '10');
+            });
+            
+            // Textos de preguntas
+            allQuestions.forEach((question, index) => {
+                params.set(`t${index + 1}`, question.text);
+            });
+            
+            params.set('survey', '1');
+            
+            const fullUrl = `${baseUrl}?${params.toString()}`;
+            document.getElementById('generatedUrl').textContent = fullUrl;
+        }
+
+        // Funciones auxiliares
+        function adjustBrightness(hex, percent) {
+            const num = parseInt(hex.replace("#", ""), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+        }
+
+        function copyUrl() {
+            const urlText = document.getElementById('generatedUrl').textContent;
+            navigator.clipboard.writeText(urlText).then(() => {
+                alert('✅ URL copiada al portapapeles');
+            });
+        }
+
+        function resetSurvey() {
+            responses = {};
+            currentQuestionIndex = 0;
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('questionSection').style.display = 'block';
+            showCurrentQuestion();
+            window.scrollTo(0, 0);
+        }
+    </script>
+</body>
+</html>
