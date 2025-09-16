@@ -268,6 +268,12 @@
             background: #f8f9fa;
             border-radius: 15px;
             padding: 20px;
+            height: 400px;
+            position: relative;
+        }
+
+        #radarChart {
+            max-height: 360px;
         }
 
         .scores-grid {
@@ -390,9 +396,9 @@
                 <button class="btn btn-secondary" id="prevBtn" onclick="previousQuestion()" disabled>
                     ← Anterior
                 </button>
-                <button class="btn" id="nextBtn" onclick="nextQuestion()" disabled>
-                    Siguiente →
-                </button>
+                <div class="progress-indicator">
+                    <span id="questionProgress"></span>
+                </div>
             </div>
         </div>
 
@@ -680,8 +686,19 @@
             // Guardar respuesta
             responses[currentQuestionIndex] = value;
             
-            // Habilitar botón siguiente
-            document.getElementById('nextBtn').disabled = false;
+            // Actualizar navegación
+            updateNavigationButtons();
+            
+            // Avanzar automáticamente después de una pequeña pausa visual
+            setTimeout(() => {
+                if (currentQuestionIndex < allQuestions.length - 1) {
+                    currentQuestionIndex++;
+                    showCurrentQuestion();
+                } else {
+                    // Si es la última pregunta, mostrar resultados
+                    showResults();
+                }
+            }, 500);
         }
 
         // Pregunta siguiente
@@ -730,10 +747,13 @@
             document.getElementById('questionSection').style.display = 'none';
             document.getElementById('resultsSection').style.display = 'block';
             
-            calculateCategoryScores();
-            createRadarChart();
-            createScoreCards();
-            generateURL();
+            // Dar tiempo para que el DOM se actualice antes de crear el gráfico
+            setTimeout(() => {
+                calculateCategoryScores();
+                createRadarChart();
+                createScoreCards();
+                generateURL();
+            }, 100);
 
             // Scroll suave a resultados
             document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
@@ -746,16 +766,20 @@
             surveyConfig.categories.forEach((category, categoryIndex) => {
                 const categoryQuestions = category.questions.length;
                 let totalScore = 0;
-                let questionsInCategory = 0;
+                let questionsAnswered = 0;
                 
+                // Buscar respuestas correspondientes a esta categoría
                 allQuestions.forEach((question, questionIndex) => {
                     if (question.categoryIndex === categoryIndex && responses[questionIndex] !== undefined) {
                         totalScore += responses[questionIndex];
-                        questionsInCategory++;
+                        questionsAnswered++;
                     }
                 });
                 
-                categoryScores[category.key] = questionsInCategory > 0 ? totalScore / questionsInCategory : 0;
+                // Calcular promedio o poner 0 si no hay respuestas
+                categoryScores[category.key] = questionsAnswered > 0 ? (totalScore / questionsAnswered) : 0;
+                
+                console.log(`Categoría ${category.name}: ${questionsAnswered} respuestas, promedio: ${categoryScores[category.key]}`);
             });
             
             return categoryScores;
